@@ -46,4 +46,9 @@ class User extends Authenticatable
             'password' => 'hashed',
         ];
     }
+
+    public function courses()
+    {
+        return $this->hasManyThrough(Course::class, UserCourse::class, 'user_id', 'id', 'id', 'course_id');
+    }
 }

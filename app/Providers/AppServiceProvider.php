@@ -21,5 +21,9 @@ class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         Passport::loadKeysFrom(storage_path());
+        Passport::tokensCan([
+            'manage-courses' => 'Manage courses',
+        ]);
+        Passport::setDefaultScope(['manage-courses']);
     }
 }
