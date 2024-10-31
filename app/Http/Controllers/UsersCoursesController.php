@@ -7,7 +7,9 @@ use App\Models\User;
 use App\Models\Course;
 use App\Models\UserCourse;
 use Illuminate\Http\Request;
+use App\Mail\CourseRegistration;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Redis;
 
@@ -103,6 +105,7 @@ class UsersCoursesController extends Controller
         if($attempt['status'] == 'success'){
             $this->update_global_courses_cache($course);
             $this->update_my_courses_cache($course, $user);
+            Mail::to($user->email)->queue(new CourseRegistration($course->name, $user->name));
         }
         return redirect()->route('users_courses.index')->with($attempt['status'], $attempt['message']);   
     }
@@ -130,6 +133,7 @@ class UsersCoursesController extends Controller
         $attempt = $this->hidden_unregister($course, $user);
         if($attempt['status'] == 'success'){
             $this->update_global_courses_cache($course);
+            Mail::to($user->email)->queue(new CourseRegistration($course->name, $user->name));
         }
         return response()->json($attempt);
     }
