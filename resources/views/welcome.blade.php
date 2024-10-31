@@ -177,5 +177,12 @@
                 </div>
             </div>
         </div>
+        @if (session('token')!==null)
+        <div class="alert alert-danger">
+            {{ session('token') }}
+        </div>
+        @else
+        <a href="{{route('issue_token')}}" class="rounded-md px-3 py-2 text-black ring-1 ring-transparent transition hover:text-black/70 focus:outline-none focus-visible:ring-[#FF2D20] dark:text-white dark:hover:text-white/80 dark:focus-visible:ring-white">Issue Token</a>
+        @endif
     </body>
 </html>

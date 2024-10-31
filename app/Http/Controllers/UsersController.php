@@ -29,4 +29,20 @@ class UsersController extends Controller
         
         return redirect('/');
     }
+
+    public function issue_token() {
+        $user = Auth::user();
+        $existingToken = $user->tokens()
+            ->where('name', 'Personal Access Token')
+            ->where('revoked', false)
+            ->where('expires_at', '>', now())
+            ->first();
+
+        if ($existingToken) {
+            $existingToken->revoke();
+        }
+        
+        $token = $user->createToken('Personal Access Token', ['manage-courses'])->accessToken;
+        return redirect('/')->with('token', $token);
+    }
 }

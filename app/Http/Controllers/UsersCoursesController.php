@@ -20,8 +20,18 @@ class UsersCoursesController extends Controller
             ->with(['courses' => $courses, 'myCourses' => $myCourses]);
     }
 
-    private function updateCache(User $user, Course $course) {
-        // Update my_courses cache
+    private function update_global_courses_cache(Course $course) {
+        $allCourses = Cache::get('courses.all', Course::all());
+        $courseIndex = $allCourses->search(function ($c) use ($course) {
+            return $c->id == $course->id;
+        });
+        if ($courseIndex !== false) {
+            $allCourses[$courseIndex]->open_seats = $course->open_seats;
+        }
+        Cache::put('courses.all', $allCourses, 3600);
+    }
+
+    private function update_my_courses_cache(Course $course, User $user){
         $myCourses = Cache::get('my_courses_' . $user->id);
         $found = false;
         $courseIndex = $myCourses->search(function ($c) use ($course){
@@ -34,19 +44,9 @@ class UsersCoursesController extends Controller
             $myCourses->forget($courseIndex);  
         }
         Cache::put('my_courses_' . $user->id, $myCourses, 3600);
-
-        // Update all_courses cache
-        $allCourses = Cache::get('courses.all', Course::all());
-        $courseIndex = $allCourses->search(function ($c) use ($course) {
-            return $c->id == $course->id;
-        });
-        if ($courseIndex !== false) {
-            $allCourses[$courseIndex]->open_seats = $course->open_seats;
-        }
-        Cache::put('courses.all', $allCourses, 3600);
     }
 
-    public function register(Request $request, Course $course, User $user){
+    private function hidden_register(Course $course, User $user){
         DB::beginTransaction();
         try {
             // Pessimistic locking
@@ -68,16 +68,15 @@ class UsersCoursesController extends Controller
                 throw new Exception('No open seats available');
             }
             DB::commit();
-            $this->updateCache($user, $course);
-            return redirect()->route('users_courses.index')->with('success', 'User registered successfully');
-        } 
+            return ['status' => 'success', 'message'=> 'User registered successfully'];
+        }
         catch (Exception $e) {
             DB::rollBack();
-            return redirect()->route('users_courses.index')->with('failure', $e->getMessage());
+            return ['status' => 'failure', 'message'=> $e->getMessage()];
         }
     }
 
-    public function unregister(Request $request, Course $course, User $user){
+    private function hidden_unregister(Course $course, User $user){
         DB::beginTransaction();
         try {
             // Pessimistic locking
@@ -91,12 +90,47 @@ class UsersCoursesController extends Controller
             $record->delete();
             
             DB::commit();
-            $this->updateCache($user, $course);
-            return redirect()->route('users_courses.index')->with('success', 'User unregistered successfully');
+            return ['status' => 'success', 'message'=> 'User unregistered successfully'];
         } 
         catch (Exception $e) {
             DB::rollBack();
-            return redirect()->route('users_courses.index')->with('failure',  $e->getMessage());
+            return ['status' => 'failure', 'message'=> $e->getMessage()];
         }
+    }
+
+    public function register(Course $course, User $user){
+        $attempt = $this->hidden_register($course, $user);
+        if($attempt['status'] == 'success'){
+            $this->update_global_courses_cache($course);
+            $this->update_my_courses_cache($course, $user);
+        }
+        return redirect()->route('users_courses.index')->with($attempt['status'], $attempt['message']);   
+    }
+
+    public function unregister(Course $course, User $user){
+        $attempt = $this->hidden_unregister($course, $user);
+        if($attempt['status'] == 'success'){
+            $this->update_global_courses_cache($course);
+            $this->update_my_courses_cache($course, $user);
+        }
+        return redirect()->route('users_courses.index')->with($attempt['status'], $attempt['message']);
+    }
+
+    public function api_register(Course $course){
+        $user = auth()->guard('api')->user();
+        $attempt = $this->hidden_register($course, $user);
+        if($attempt['status'] == 'success'){
+            $this->update_global_courses_cache($course);
+        }
+        return response()->json($attempt);
+    }
+
+    public function api_unregister(Course $course){
+        $user = auth()->guard('api')->user();
+        $attempt = $this->hidden_unregister($course, $user);
+        if($attempt['status'] == 'success'){
+            $this->update_global_courses_cache($course);
+        }
+        return response()->json($attempt);
     }
 }
