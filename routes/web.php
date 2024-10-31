@@ -17,7 +17,7 @@ Route::post('/login', [UsersController::class, 'login']);
 
 Route::get('/logout', [UsersController::class, 'logout'])->name('logout');
 
-Route::group(['prefix' => 'users_courses'], function () {
+Route::group(['prefix' => 'users_courses', 'middleware'=>'auth'], function () {
     Route::get('/', [UsersCoursesController::class, 'index'])->name('users_courses.index');
     Route::post('/unregister/{course}/{user}', [UsersCoursesController::class, 'unregister'])->name('users_courses.unregister');
     Route::post('/register/{course}/{user}', [UsersCoursesController::class, 'register'])->name('users_courses.register');

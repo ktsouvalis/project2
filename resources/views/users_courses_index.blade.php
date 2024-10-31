@@ -1,6 +1,6 @@
 @php
-    $courses = \App\Models\Course::all();
     $user = auth()->user();
+    // dd($courses);
 @endphp
 
 <!DOCTYPE html>
@@ -25,10 +25,10 @@
             <tbody>
                 @foreach($courses as $course)
                     <tr>
-                        <td>{{ $course->name }}</td>
+                        <td>{{$course->name }}</td>
                         <td>{{$course->open_seats}}</td>
                         <td>
-                            @if($user->courses->contains($course))
+                            @if(in_array($course->id, $myCourses->pluck('id')->toArray()))
                                 <form action="{{ route('users_courses.unregister', ['course'=> $course->id, 'user'=>$user->id ]) }}" method="POST">
                                     @csrf
                                     <button type="submit" class="btn btn-danger">Unregister</button>
