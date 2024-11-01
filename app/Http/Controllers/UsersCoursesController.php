@@ -124,6 +124,7 @@ class UsersCoursesController extends Controller
         $attempt = $this->hidden_register($course, $user);
         if($attempt['status'] == 'success'){
             $this->update_global_courses_cache($course);
+            Mail::to($user->email)->queue(new CourseRegistration($course->name, $user->name));
         }
         return response()->json($attempt);
     }
@@ -133,7 +134,6 @@ class UsersCoursesController extends Controller
         $attempt = $this->hidden_unregister($course, $user);
         if($attempt['status'] == 'success'){
             $this->update_global_courses_cache($course);
-            Mail::to($user->email)->queue(new CourseRegistration($course->name, $user->name));
         }
         return response()->json($attempt);
     }
